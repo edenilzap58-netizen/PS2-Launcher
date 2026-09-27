@@ -1,0 +1,38 @@
+name: Build PS2 ELF
+
+on: [workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract ZIP File
+        run: |
+          unzip -o meu_projeto_modificado.zip
+          cp -r PS2-Launcher-4.0.0/* . || true
+
+      - name: Fetch Missing Network Submodule
+        run: |
+          rm -rf modules/network/lwNBD
+          git clone https://github.com modules/network/lwNBD
+
+      - name: Compile inside PS2SDK
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ps2dev/ps2dev:latest
+          options: -v ${{ github.workspace }}:/src -w /src
+          run: |
+            apk update && apk add --no-cache make
+            make clean
+            make
+
+      - name: Upload ELF
+        uses: actions/upload-artifact@v4
+        with:
+          name: PS2-Launcher-ELF
+          path: |
+            *.ELF
+            *.elf
